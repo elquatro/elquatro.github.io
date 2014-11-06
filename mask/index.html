@@ -6,9 +6,13 @@
     <script type="text/javascript" src="jquery.maskedinput.js"></script>
 </head>
 <body>
-    <input type="tel" />
+    <input type="text" placeholder="дд.мм.гггг" />
     <script type="text/javascript">
-        $("input[type=tel]").mask("+7 (999) 999-99-99");
+        (function($) {
+            $(function() {
+                $("input[type=text]").mask("99.99.9999");
+            });
+        }(window.$));
     </script>
 </body>
 </html>
