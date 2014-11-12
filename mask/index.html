@@ -4,13 +4,20 @@
     <title>maskedinput test page</title>
     <script type="text/javascript" src="http://yastatic.net/jquery/1.11.1/jquery.min.js"></script>
     <script type="text/javascript" src="jquery.maskedinput.js"></script>
+    <script type="text/javascript" src="jquery.inputmask.bundle.min.js"></script>
 </head>
 <body>
-    <input type="text" placeholder="дд.мм.гггг" />
+    <p>
+        <input id="case-1" type="text" placeholder="дд.мм.гггг" />
+    </p>
+    <p>
+        <input id="case-2" type="text" />
+    </p>
     <script type="text/javascript">
         (function($) {
             $(function() {
-                $("input[type=text]").mask("99.99.9999");
+                $("#case-1").mask("99.99.9999");
+                $("#case-2").inputmask("99.99.9999");
             });
         }(window.$));
     </script>
