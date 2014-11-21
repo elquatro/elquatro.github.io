@@ -1,17 +1,20 @@
-(function($) {
+(function (factory) {
+    if (typeof define === 'function' && define.amd) {
+        // AMD. Register as an anonymous module.
+        define(['jquery'], factory);
+    } else if (typeof exports === 'object') {
+        // Node/CommonJS
+        factory(require('jquery'));
+    } else {
+        // Browser globals
+        factory(jQuery);
+    }
+}(function ($) {
 
-function getPasteEvent() {
-    var el = document.createElement('input'),
-        name = 'onpaste';
-    el.setAttribute(name, '');
-    return (typeof el[name] === 'function')?'paste':'input';
-}
-
-var pasteEventName = getPasteEvent() + ".mask",
-	ua = navigator.userAgent,
+var ua = navigator.userAgent,
 	iPhone = /iphone/i.test(ua),
 	chrome = /chrome/i.test(ua),
-	android=/android/i.test(ua),
+	android = /android/i.test(ua),
 	caretTimeoutId;
 
 $.mask = {
@@ -75,8 +78,10 @@ $.fn.extend({
 
 		if (!mask && this.length > 0) {
 			input = $(this[0]);
-			return input.data($.mask.dataName)();
+            var fn = input.data($.mask.dataName)
+			return fn?fn():undefined;
 		}
+
 		settings = $.extend({
 			autoclear: $.mask.autoclear,
 			placeholder: $.mask.placeholder, // Load default placeholder
@@ -112,7 +117,7 @@ $.fn.extend({
     				mask.split(""),
     				function(c, i) {
     					if (c != '?') {
-    						return defs[c] ? settings.placeholder : c;
+    						return defs[c] ? getPlaceholder(i) : c;
     					}
     				}),
 				defaultBuffer = buffer.join(''),
@@ -124,11 +129,17 @@ $.fn.extend({
                 }
 
                 for (var i = firstNonMaskPos; i <= lastRequiredNonMaskPos; i++) {
-                    if (tests[i] && buffer[i] === settings.placeholder) {
+                    if (tests[i] && buffer[i] === getPlaceholder(i)) {
                         return;
                     }
                 }
                 settings.completed.call(input);
+            }
+
+            function getPlaceholder(i){
+                if(i < settings.placeholder.length)
+                    return settings.placeholder.charAt(i);
+                return settings.placeholder.charAt(0);
             }
 
 			function seekNext(pos) {
@@ -153,7 +164,7 @@ $.fn.extend({
 					if (tests[i]) {
 						if (j < len && tests[i].test(buffer[j])) {
 							buffer[i] = buffer[j];
-							buffer[j] = settings.placeholder;
+							buffer[j] = getPlaceholder(j);
 						} else {
 							break;
 						}
@@ -171,7 +182,7 @@ $.fn.extend({
 					j,
 					t;
 
-				for (i = pos, c = settings.placeholder; i < len; i++) {
+				for (i = pos, c = getPlaceholder(pos); i < len; i++) {
 					if (tests[i]) {
 						j = seekNext(i);
 						t = buffer[i];
@@ -222,7 +233,7 @@ $.fn.extend({
                     return;
                 }
 
-				var k = e.which,
+				var k = e.which || e.keyCode,
 					pos,
 					begin,
 					end;
@@ -255,7 +266,8 @@ $.fn.extend({
                     return;
                 }
 
-				var k = e.which,
+				// var k = e.which || e.keyCode,
+                var k = e.which, // Hack for firefox
 					pos = input.caret(),
 					p,
 					c,
@@ -284,7 +296,6 @@ $.fn.extend({
 								var proxy = function() {
 									$.proxy($.fn.caret,input,next)();
 								};
-
 								setTimeout(proxy,0);
 							}else{
 								input.caret(next);
@@ -302,7 +313,7 @@ $.fn.extend({
 				var i;
 				for (i = start; i < end && i < len; i++) {
 					if (tests[i]) {
-						buffer[i] = settings.placeholder;
+						buffer[i] = getPlaceholder(i);
 					}
 				}
 			}
@@ -319,7 +330,7 @@ $.fn.extend({
 
 				for (i = 0, pos = 0; i < len; i++) {
 					if (tests[i]) {
-						buffer[i] = settings.placeholder;
+						buffer[i] = getPlaceholder(i);
 						while (pos++ < test.length) {
 							c = test.charAt(pos - 1);
 							if (tests[i].test(c)) {
@@ -332,9 +343,13 @@ $.fn.extend({
 							clearBuffer(i + 1, len);
 							break;
 						}
-					} else if (buffer[i] === test.charAt(pos) && i !== partialPosition) {
-						pos++;
-						lastMatch = i;
+					} else {
+                        if (buffer[i] === test.charAt(pos)) {
+                            pos++;
+                        }
+                        if( i < partialPosition){
+                            lastMatch = i;
+                        }
 					}
 				}
 				if (allow) {
@@ -359,7 +374,7 @@ $.fn.extend({
 
 			input.data($.mask.dataName,function(){
 				return $.map(buffer, function(c, i) {
-					return tests[i]&&c!=settings.placeholder ? c : null;
+					return tests[i]&&c!=getPlaceholder(i) ? c : null;
 				}).join('');
 			});
 
@@ -383,6 +398,9 @@ $.fn.extend({
 					pos = checkVal();
 
 					caretTimeoutId = setTimeout(function(){
+                        if(input.get(0) !== document.activeElement){
+                            return;
+                        }
 						writeBuffer();
 						if (pos == mask.replace("?","").length) {
 							input.caret(0, pos);
@@ -394,7 +412,9 @@ $.fn.extend({
 				.on("blur.mask", blurEvent)
 				.on("keydown.mask", keydownEvent)
 				.on("keypress.mask", keypressEvent)
-				.on(pasteEventName, function() {
+				.on("input.mask paste.mask", function() {
+                    return; // Hack for IE10+
+
                     if (input.prop("readonly")){
                         return;
                     }
@@ -415,4 +435,4 @@ $.fn.extend({
 		});
 	}
 });
-})(jQuery);
+}));
